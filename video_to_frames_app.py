@@ -16,7 +16,7 @@ Fixes vs. the old scripts:
    no duplicate names.
 4. No more manual folder renaming: folders are created as Output Image 1,
    Output Image 2, Output Image 3, ... . If all such folders are deleted,
-   the next run starts again from Output Image 1 and image 1.jpg.
+   the next run starts again from Output Image 1 and image 1.png.
 """
 
 import os
@@ -90,7 +90,7 @@ def safe_imwrite(path, image, ext=".png"):
 def extract_frames(video_path, output_dir, interval, start_number=1, progress_callback=None):
     """
     Save every `interval`-th frame from video_path into output_dir.
-    Filenames are global sequential numbers (1.jpg, 2.jpg, ...), so
+    Filenames are global sequential numbers (1.png, 2.png, ...), so
     multiple output folders can be merged without collisions.
 
     Returns the number of images saved.
