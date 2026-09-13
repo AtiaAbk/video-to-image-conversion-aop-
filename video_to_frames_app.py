@@ -11,18 +11,18 @@ Fixes vs. the old scripts:
 2. Output folder location: old scripts used a relative "output_images" folder,
    which depends on the current working directory (can end up in a random place).
    Now the output folder is always created next to this script.
-3. Unique, mergeable filenames: every run gets its own run-id (tied to the unique
-   output folder name) baked into every filename, e.g.
-   myvideo_20260913_201455_000001.jpg
-   So even if you merge many output folders into one, filenames never collide.
-4. No more manual folder renaming: a new, uniquely named output folder
-   (output_images_<timestamp>) is created automatically every run. If a folder
-   with that name somehow already exists, a counter is appended automatically.
+3. Unique, mergeable filenames: image numbers continue globally across all
+   numbered output folders (1.jpg, 2.jpg, 3.jpg, ...), so merged folders have
+   no duplicate names.
+4. No more manual folder renaming: folders are created as Output Image 1,
+   Output Image 2, Output Image 3, ... . If all such folders are deleted,
+   the next run starts again from Output Image 1 and image 1.jpg.
 """
 
 import os
 import sys
 import threading
+import re
 from datetime import datetime
 
 import cv2
@@ -46,20 +46,36 @@ def sanitize_name(name):
     return cleaned or "video"
 
 
-def make_unique_output_folder(base_dir, prefix="output_images"):
-    """Create a fresh output folder that never collides with an existing one."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    folder_name = f"{prefix}_{timestamp}"
+def make_unique_output_folder(base_dir, prefix="Output Image"):
+    """Create the next numbered output folder (Output Image 1, 2, ...)."""
+    pattern = re.compile(rf"^{re.escape(prefix)} (\d+)$", re.IGNORECASE)
+    numbers = []
+    for name in os.listdir(base_dir):
+        path = os.path.join(base_dir, name)
+        match = pattern.match(name)
+        if match and os.path.isdir(path):
+            numbers.append(int(match.group(1)))
+
+    next_number = max(numbers, default=0) + 1
+    folder_name = f"{prefix} {next_number}"
     folder_path = os.path.join(base_dir, folder_name)
-
-    counter = 1
-    while os.path.exists(folder_path):
-        folder_name = f"{prefix}_{timestamp}_{counter}"
-        folder_path = os.path.join(base_dir, folder_name)
-        counter += 1
-
-    os.makedirs(folder_path)
+    os.makedirs(folder_path, exist_ok=False)
     return folder_path, folder_name
+
+
+def get_next_image_number(base_dir, folder_prefix="Output Image"):
+    """Return the next global image number across all numbered output folders."""
+    folder_pattern = re.compile(rf"^{re.escape(folder_prefix)} \d+$", re.IGNORECASE)
+    highest = 0
+    for folder in os.listdir(base_dir):
+        folder_path = os.path.join(base_dir, folder)
+        if not folder_pattern.match(folder) or not os.path.isdir(folder_path):
+            continue
+        for filename in os.listdir(folder_path):
+            stem, ext = os.path.splitext(filename)
+            if ext.lower() in {".jpg", ".jpeg", ".png"} and stem.isdigit():
+                highest = max(highest, int(stem))
+    return highest + 1
 
 
 def safe_imwrite(path, image, ext=".jpg"):
@@ -71,27 +87,23 @@ def safe_imwrite(path, image, ext=".jpg"):
     return True
 
 
-def extract_frames(video_path, output_dir, interval, run_id=None, progress_callback=None):
+def extract_frames(video_path, output_dir, interval, start_number=1, progress_callback=None):
     """
     Save every `interval`-th frame from video_path into output_dir.
-    Filenames: <video-name>_<run-id>_<sequence>.jpg  -> globally unique,
-    safe to merge multiple output folders together.
-
-    run_id should come from the *same* unique output folder name
-    (see make_unique_output_folder) rather than a fresh timestamp here,
-    so two runs started in the same second still can't collide.
+    Filenames are global sequential numbers (1.jpg, 2.jpg, ...), so
+    multiple output folders can be merged without collisions.
 
     Returns the number of images saved.
     """
+    if not isinstance(interval, int) or interval <= 0:
+        raise ValueError("interval must be a positive integer")
+    if not isinstance(start_number, int) or start_number <= 0:
+        raise ValueError("start_number must be a positive integer")
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise RuntimeError(f"Could not open video file: {video_path}")
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT)) or 0
-    video_stem = sanitize_name(os.path.splitext(os.path.basename(video_path))[0])
-    if run_id is None:
-        run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-
     frame_index = 0
     saved_count = 0
 
@@ -102,7 +114,7 @@ def extract_frames(video_path, output_dir, interval, run_id=None, progress_callb
 
         if frame_index % interval == 0:
             saved_count += 1
-            filename = f"{video_stem}_{run_id}_{saved_count:06d}.jpg"
+            filename = f"{start_number + saved_count - 1}.jpg"
             out_path = os.path.join(output_dir, filename)
             if not safe_imwrite(out_path, frame):
                 print(f"Warning: failed to save -> {out_path}")
@@ -207,6 +219,7 @@ class App:
             return
 
         output_dir, folder_name = make_unique_output_folder(get_script_dir())
+        start_number = get_next_image_number(get_script_dir())
 
         self.run_btn.config(state="disabled")
         self.status_label.config(text=f"Processing started... ({folder_name})")
@@ -231,7 +244,7 @@ class App:
         def worker():
             try:
                 saved = extract_frames(video_path, output_dir, interval,
-                                        run_id=folder_name,
+                                        start_number=start_number,
                                         progress_callback=update_progress)
                 self.root.after(0, lambda: self.finish(True, saved, output_dir, progress_win))
             except Exception as e:
