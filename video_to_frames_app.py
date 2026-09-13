@@ -12,7 +12,7 @@ Fixes vs. the old scripts:
    which depends on the current working directory (can end up in a random place).
    Now the output folder is always created next to this script.
 3. Unique, mergeable filenames: image numbers continue globally across all
-   numbered output folders (1.jpg, 2.jpg, 3.jpg, ...), so merged folders have
+   numbered output folders (1.png, 2.png, 3.png, ...), so merged folders have
    no duplicate names.
 4. No more manual folder renaming: folders are created as Output Image 1,
    Output Image 2, Output Image 3, ... . If all such folders are deleted,
@@ -73,12 +73,12 @@ def get_next_image_number(base_dir, folder_prefix="Output Image"):
             continue
         for filename in os.listdir(folder_path):
             stem, ext = os.path.splitext(filename)
-            if ext.lower() in {".jpg", ".jpeg", ".png"} and stem.isdigit():
+            if ext.lower() == ".png" and stem.isdigit():
                 highest = max(highest, int(stem))
     return highest + 1
 
 
-def safe_imwrite(path, image, ext=".jpg"):
+def safe_imwrite(path, image, ext=".png"):
     """Unicode-safe replacement for cv2.imwrite (works with any path, any language)."""
     ok, buf = cv2.imencode(ext, image)
     if not ok:
@@ -114,7 +114,7 @@ def extract_frames(video_path, output_dir, interval, start_number=1, progress_ca
 
         if frame_index % interval == 0:
             saved_count += 1
-            filename = f"{start_number + saved_count - 1}.jpg"
+            filename = f"{start_number + saved_count - 1}.png"
             out_path = os.path.join(output_dir, filename)
             if not safe_imwrite(out_path, frame):
                 print(f"Warning: failed to save -> {out_path}")

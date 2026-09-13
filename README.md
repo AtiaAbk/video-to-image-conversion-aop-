@@ -28,11 +28,11 @@ python video_to_frames_app.py
 | Image save হচ্ছিল না | `cv2.imwrite()` Windows-এ বাংলা/non-ASCII path-এ চুপচাপ fail করে | Unicode-safe write (`cv2.imencode` + `tofile`) |
 | Output folder এলোমেলো জায়গায় তৈরি হতো | Relative path, working directory-র উপর নির্ভরশীল ছিল | এখন সবসময় script-এর পাশেই তৈরি হয় |
 | বারবার folder-এর নাম manually বদলাতে হতো | Fixed folder name (`output_images`) — প্রতি run-এ overwrite হতো | `Output Image 1`, `Output Image 2`—এভাবে automatic sequence |
-| Merge করলে filename duplicate হয়ে যেত | প্রতিটি folder-এ আবার ১ থেকে শুরু হওয়া নাম | সব numbered output folder জুড়ে global image sequence (`1.jpg`, `2.jpg`, ...) |
+| Merge করলে filename duplicate হয়ে যেত | প্রতিটি folder-এ আবার ১ থেকে শুরু হওয়া নাম | সব numbered output folder জুড়ে global image sequence (`1.png`, `2.png`, ...) |
 
-ফাইলের নামের ধরন: `1.jpg`, `2.jpg`, `3.jpg` ...
+ফাইলের নামের ধরন: `1.png`, `2.png`, `3.png` ...
 
-আগের numbered output folder থাকলে নতুন folder এবং ছবির numbering সেখানকার সর্বোচ্চ নম্বরের পর থেকে চলবে। সব output folder মুছে দিলে পরবর্তী run আবার `Output Image 1` এবং `1.jpg` থেকে শুরু হবে।
+আগের numbered output folder থাকলে নতুন folder এবং ছবির numbering সেখানকার সর্বোচ্চ নম্বরের পর থেকে চলবে। সব output folder মুছে দিলে পরবর্তী run আবার `Output Image 1` এবং `1.png` থেকে শুরু হবে।
 
 ## অন্যান্য utility scripts (আগের মতোই আছে)
 
