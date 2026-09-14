@@ -2,7 +2,7 @@
 """
 Video -> Frames converter
 --------------------------
-Run -> Select video -> Select frame gap (5 / 10 / custom) -> images saved automatically.
+Run -> Select one or many videos -> Select frame gap -> images saved automatically.
 
 Fixes vs. the old scripts:
 1. Images not saving: cv2.imwrite() silently fails on Windows when the path has
@@ -206,12 +206,12 @@ class App:
         self.status_label.pack(pady=5)
 
     def on_run(self):
-        video_path = filedialog.askopenfilename(
-            title="Select a video file",
+        video_paths = filedialog.askopenfilenames(
+            title="Select one or more video files",
             filetypes=[("Video files", "*.mp4 *.mov *.avi *.mkv *.MP4 *.MOV *.AVI *.MKV"),
                        ("All files", "*.*")],
         )
-        if not video_path:
+        if not video_paths:
             return
 
         interval = ask_interval(self.root)
@@ -222,7 +222,7 @@ class App:
         start_number = get_next_image_number(get_script_dir())
 
         self.run_btn.config(state="disabled")
-        self.status_label.config(text=f"Processing started... ({folder_name})")
+        self.status_label.config(text=f"Processing {len(video_paths)} videos... ({folder_name})")
 
         progress_win = tk.Toplevel(self.root)
         progress_win.title("Processing...")
@@ -233,19 +233,29 @@ class App:
         pct_label = tk.Label(progress_win, text="0%")
         pct_label.pack()
 
-        def update_progress(frame_index, total_frames, saved_count):
+        def update_progress(video_index, frame_index, total_frames, saved_count):
             pct = int(frame_index / total_frames * 100) if total_frames else 0
 
             def apply():
                 pb.config(value=pct)
-                pct_label.config(text=f"{pct}%  |  {saved_count} images saved")
+                pct_label.config(text=f"Video {video_index}/{len(video_paths)}: {pct}%  |  {saved_count} images saved")
             self.root.after(0, apply)
 
         def worker():
             try:
-                saved = extract_frames(video_path, output_dir, interval,
-                                        start_number=start_number,
-                                        progress_callback=update_progress)
+                saved = 0
+                next_number = start_number
+                for video_index, video_path in enumerate(video_paths, start=1):
+                    def video_progress(frame_index, total_frames, video_saved,
+                                       index=video_index, offset=saved):
+                        update_progress(index, frame_index, total_frames,
+                                        offset + video_saved)
+
+                    count = extract_frames(video_path, output_dir, interval,
+                                           start_number=next_number,
+                                           progress_callback=video_progress)
+                    saved += count
+                    next_number += count
                 self.root.after(0, lambda: self.finish(True, saved, output_dir, progress_win))
             except Exception as e:
                 err = str(e)
