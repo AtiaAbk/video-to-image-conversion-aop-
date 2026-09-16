@@ -1,43 +1,76 @@
 # Video → Image Conversion Toolkit
 
-## Install (প্রথমবার একবার করুন)
+## Installation (Do this once)
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Main tool: `video_to_frames_app.py`
+## Main Tool: `video_to_frames_app.py`
 
-এটাই আপনার মূল টুল — ভিডিও থেকে ফ্রেম বের করার জন্য।
+This is the main tool for extracting frames from videos.
 
-**চালানোর নিয়ম:**
+**How to run:**
 
 ```bash
 python video_to_frames_app.py
 ```
 
-1. একটা উইন্ডো খুলবে — **"▶ Run"** বাটনে ক্লিক করুন
-2. ভিডিও ফাইল সিলেক্ট করুন
-3. ফ্রেম গ্যাপ সিলেক্ট করুন — **প্রতি ৫টি** অথবা **প্রতি ১০টি** ফ্রেমে ১টি ছবি (অথবা নিজের সংখ্যা লিখুন)
-4. Progress bar দেখাবে, শেষে output folder খুলে দেখাবে
+1. A window will open — click the **"▶ Run"** button.
+2. Select a video file.
+3. Select the frame interval — extract **1 image every 5 frames** or **1 image every 10 frames**, or enter your own number.
+4. A progress bar will show the conversion progress.
+5. When finished, the output folder will open automatically.
 
-**এই ভার্সনে যা ঠিক করা হয়েছে (পুরনো scripts-এর তুলনায়):**
+## Fixes in This Version
 
-| সমস্যা | কারণ | সমাধান |
-|---|---|---|
-| Image save হচ্ছিল না | `cv2.imwrite()` Windows-এ বাংলা/non-ASCII path-এ চুপচাপ fail করে | Unicode-safe write (`cv2.imencode` + `tofile`) |
-| Output folder এলোমেলো জায়গায় তৈরি হতো | Relative path, working directory-র উপর নির্ভরশীল ছিল | এখন সবসময় script-এর পাশেই তৈরি হয় |
-| বারবার folder-এর নাম manually বদলাতে হতো | Fixed folder name (`output_images`) — প্রতি run-এ overwrite হতো | `Output Image 1`, `Output Image 2`—এভাবে automatic sequence |
-| Merge করলে filename duplicate হয়ে যেত | প্রতিটি folder-এ আবার ১ থেকে শুরু হওয়া নাম | সব numbered output folder জুড়ে global image sequence (`1.png`, `2.png`, ...) |
+| Problem                                             | Cause                                                                                           | Solution                                                                                         |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Images were not being saved                         | `cv2.imwrite()` can silently fail on Windows when the path contains Bangla/non-ASCII characters | Unicode-safe image writing using `cv2.imencode` + `tofile`                                       |
+| Output folder was created in inconsistent locations | The relative path depended on the current working directory                                     | Output folders are now always created next to the script                                         |
+| Folder names had to be changed manually every time  | A fixed folder name (`output_images`) was used, causing files to be overwritten                 | Folders are automatically created as `Output Image 1`, `Output Image 2`, etc.                    |
+| Duplicate filenames appeared when merging outputs   | Each folder started numbering from 1 again                                                      | A global image sequence is maintained across all numbered output folders (`1.png`, `2.png`, ...) |
 
-ফাইলের নামের ধরন: `1.png`, `2.png`, `3.png` ...
+### File Naming
 
-আগের numbered output folder থাকলে নতুন folder এবং ছবির numbering সেখানকার সর্বোচ্চ নম্বরের পর থেকে চলবে। সব output folder মুছে দিলে পরবর্তী run আবার `Output Image 1` এবং `1.png` থেকে শুরু হবে।
+Images are saved using sequential filenames:
 
-## অন্যান্য utility scripts (আগের মতোই আছে)
+```text
+1.png
+2.png
+3.png
+...
+```
 
-- `rename.py` — একটা ফোল্ডারের `.png` ছবি bulk rename করে
-- `jpg to png.py` — একটা ফোল্ডারের সব `.jpg` কে `.png`-তে convert করে
-- `suffleing image.py` — dataset randomization-এর জন্য ছবির ক্রম এলোমেলো করে দেয়
+If numbered output folders already exist, the next folder and image numbering will continue from the highest existing number.
 
-এই তিনটা script আগের মতোই কাজ করে, এগুলোতে কোনো bug রিপোর্ট হয়নি তাই পরিবর্তন করা হয়নি। যদি এগুলোতেও কোনো সমস্যা থাকে, জানাবেন।
+For example:
+
+```text
+Output Image 1
+├── 1.png
+├── 2.png
+└── 3.png
+
+Output Image 2
+├── 4.png
+├── 5.png
+└── 6.png
+```
+
+If all output folders are deleted, the next run will start again from:
+
+```text
+Output Image 1
+1.png
+```
+
+## Other Utility Scripts
+
+The following utility scripts remain unchanged and work as before:
+
+* `rename.py` — Bulk renames `.png` images in a folder.
+* `jpg to png.py` — Converts all `.jpg` images in a folder to `.png`.
+* `suffleing image.py` — Randomizes the order of images for dataset preparation.
+
+These three scripts have not been modified because no bugs have been reported with them. If you encounter any issues with these scripts, please let me know.
